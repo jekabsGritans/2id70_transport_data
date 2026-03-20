@@ -1,0 +1,2 @@
+- We use the open GTFS data from the Île-de-France region avaialble at https://transport.data.gouv.fr/resources/80921
+- Run `download.sh` to download it.

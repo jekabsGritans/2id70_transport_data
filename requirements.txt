@@ -2,3 +2,6 @@ logica
 pandas
 sqlalchemy
 psycopg2-binary
+ipython
+jupyter
+duckdb

@@ -6,6 +6,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install logica
 
-WORKDIR /tmp/build
+WORKDIR /workspace
 COPY requirements.txt .
 RUN pip install -r requirements.txt

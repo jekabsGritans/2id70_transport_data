@@ -1,0 +1,47 @@
+services:
+  db:
+    build:
+      context: ./data
+      dockerfile: Dockerfile
+    container_name: gtfs_postgres
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: gtfs_db
+    ports:
+      - "5433:5432"
+    volumes:
+      # Shared volume for GTFS data
+      - gtfs-data:/data
+    networks:
+      - gtfs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  work:
+    build:
+      context: ./work
+      dockerfile: Dockerfile
+    container_name: gtfs_work
+    working_dir: /workspace
+    volumes:
+      - ./work:/workspace
+    networks:
+      - gtfs-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+
+volumes:
+  gtfs-data:
+    driver: local
+
+networks:
+  gtfs-network:
+    driver: bridge

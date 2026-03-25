@@ -1,21 +1,43 @@
-# Dataset
-- We use the open GTFS data from the Île-de-France region avaialble at https://transport.data.gouv.fr/resources/80921
-- ~~Run `download.sh` to download it.~~ The dataset download is included in `run.py` if files not already present.
-- This dataset follows the [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/) which defines some `.csv` file structures.
+# GTFS Transport Data
 
-# Setting up
+Uses the open GTFS data from the Île-de-France region ([IDFM dataset](https://transport.data.gouv.fr/resources/80921)), following the [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/).
+
+## Project Structure
+
+```
+transport_data/
+├── data/          # Database container
+│   ├── Dockerfile
+│   ├── download.sh
+│   └── init.sql
+├── work/          # Querying/benchmarking container
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── logica/
+│   └── scripts/
+├── .devcontainer/
+└── docker-compose.yml
+```
+
+- **`data/`** — PostgreSQL container. On first startup, automatically downloads the GTFS dataset and loads it into the database.
+- **`work/`** — Python + Logica development environment. Connects to the database at `db:5432`.
+
+## Setup
+
+**Prerequisites:** Docker Desktop, VSCode + [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-remote.remote-containers) extension.
+
+1. Open the project in VSCode and click **"Reopen in Container"**
+2. Docker Compose will build both containers and start them (the DB will download the dataset on first run)
+3. Run scripts from the integrated terminal, e.g. `python scripts/run.py`
+
 ## Database
-- `docker-compose.yml` has a postgres container  that uses `init.sql` to load data from `IDFM-gtfs/`
-## Docker
-- For Mac/Windows, install Docker Desktop
 
-# Querying DB
-- ~~create a python venv and install the requirements `python -m venv venv && pip install -r requirements.txt`~~
-- Use the provided Dockerfile to run the code in a Docker environment (easy to use with VSCode and the Dev Containers extension)
-- As an example, `run.py` compiles logica code in `edges.l` into sql and executes it.
-    - This query creates the graph edges that we will need for pathfinding.
+```
+postgresql://myuser:mypassword@db:5432/gtfs_db
+```
 
-# TODO
-- [ ] GTFS does not include edges as a separate table. Maybe we should save ithem as a materialised view? or do we want to keep the table raw and include finding edges in the solution queries that we are benchmarking?
-- [ ] Not all edges are active on all days. (the calendar table apparently specifies what is active when).
-    - probably best to use this info by filtering trips for the day in mind as a first step
+Tables: `stops`, `calendar`, `trips`, `stop_times`
+
+## TODO
+- [ ] GTFS does not include edges as a table — consider a materialised view?
+- [ ] Not all edges are active on all days; filter trips by date using the `calendar` table

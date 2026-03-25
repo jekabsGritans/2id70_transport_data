@@ -9,6 +9,3 @@ COPY init.sql /docker-entrypoint-initdb.d/02-init.sql
 
 # Make download script executable
 RUN chmod +x /docker-entrypoint-initdb.d/01-download.sh
-
-# The download script will run automatically on first container startup
-# thanks to docker-entrypoint-initdb.d mechanism

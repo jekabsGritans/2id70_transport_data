@@ -59,10 +59,10 @@ CREATE TABLE stop_times (
     drop_off_booking_rule_id TEXT      -- Custom IDFM column
 );
 
-COPY stops FROM '/data/gtfs/stops.txt' DELIMITER ',' CSV HEADER;
-COPY calendar FROM '/data/gtfs/calendar.txt' DELIMITER ',' CSV HEADER;
-COPY trips FROM '/data/gtfs/trips.txt' DELIMITER ',' CSV HEADER;
-COPY stop_times FROM '/data/gtfs/stop_times.txt' DELIMITER ',' CSV HEADER;
+COPY stops FROM '/tmp/gtfs/stops.txt' DELIMITER ',' CSV HEADER;
+COPY calendar FROM '/tmp/gtfs/calendar.txt' DELIMITER ',' CSV HEADER;
+COPY trips FROM '/tmp/gtfs/trips.txt' DELIMITER ',' CSV HEADER;
+COPY stop_times FROM '/tmp/gtfs/stop_times.txt' DELIMITER ',' CSV HEADER;
 
 CREATE INDEX idx_stop_times_trip ON stop_times(trip_id);
 CREATE INDEX idx_stop_times_stop ON stop_times(stop_id);

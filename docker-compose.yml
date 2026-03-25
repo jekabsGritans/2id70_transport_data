@@ -11,8 +11,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      # Shared volume for GTFS data
-      - gtfs-data:/data
+      - pgdata:/var/lib/postgresql/data
     networks:
       - gtfs-network
     healthcheck:
@@ -39,8 +38,7 @@ services:
     tty: true
 
 volumes:
-  gtfs-data:
-    driver: local
+  pgdata:
 
 networks:
   gtfs-network:

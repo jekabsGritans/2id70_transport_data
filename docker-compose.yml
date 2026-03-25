@@ -1,4 +1,13 @@
 services:
+  downloader:
+    build:
+      context: ./data
+      dockerfile: Dockerfile.downloader
+    container_name: gtfs_downloader
+    volumes:
+      - gtfs-data:/data
+    restart: "no"
+
   db:
     build:
       context: ./data
@@ -12,10 +21,14 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - gtfs-data:/data:ro
     networks:
       - gtfs-network
+    depends_on:
+      downloader:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      test: ["CMD-SHELL", "pg_isready -U myuser -d gtfs_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,6 +52,7 @@ services:
 
 volumes:
   pgdata:
+  gtfs-data:
 
 networks:
   gtfs-network:

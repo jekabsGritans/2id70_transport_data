@@ -28,7 +28,7 @@ def main():
         select_sql = sql_query
 
     print("Executing query on PostgreSQL...")
-    db_url = 'postgresql+psycopg2://myuser:mypassword@db:5432/gtfs_db'
+    db_url = 'postgresql+psycopg2://myuser:mypassword@gtfs_postgres:5432/gtfs_db'
     engine = create_engine(db_url)
 
     with engine.begin() as conn:

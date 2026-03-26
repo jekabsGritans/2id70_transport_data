@@ -31,7 +31,7 @@ def compile_logica(predicate_name: str, file_path: str):
 def main():
     load_data()
 
-    sql_query = compile_logica('Edges', 'logica/edges.l')
+    sql_query = compile_logica('Even', 'logica/logica.l')
     
     # Separate Logica's PostgreSQL setup code from the actual SELECT statement
     # Logica's setup always ends with 'END $$;'

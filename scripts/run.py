@@ -23,15 +23,28 @@ def compile_logica(predicate_name: str, file_path: str):
     print(f"Compiling {predicate_name} from {file_path}...")
     result = subprocess.run(
         ['python', '-m', 'logica', file_path, 'print', predicate_name],
-        capture_output=True, text=True, check=True
+        capture_output=True, text=True
     )
+
+    if result.returncode > 0:
+        raise RuntimeError("\nLogica ran into a problem:\n" + result.stderr)
     
     return result.stdout.strip()
 
 def main():
     load_data()
 
-    sql_query = compile_logica('Even', 'logica/logica.l')
+    db_url = 'postgresql+psycopg2://myuser:mypassword@host.docker.internal:5433/gtfs_db'
+    engine = create_engine(db_url)
+
+    src_id = "IDFM:monomodalStopPlace:46731" # input("Give the ID of your source stop: ")
+    dst_id = "IDFM:monomodalStopPlace:43164" # input("Give the ID of your destination stop: ")
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TEMP TABLE input(source_id VARCHAR, dest_id VARCHAR);"))
+        conn.execute(text("INSERT INTO input (source_id, dest_id)VALUES (:src, :dst)"), {"src": src_id, "dst": dst_id})
+        conn.commit()
+
+    sql_query = compile_logica('Edges', 'logica/logica.l')
     
     # Separate Logica's PostgreSQL setup code from the actual SELECT statement
     # Logica's setup always ends with 'END $$;'
@@ -45,8 +58,6 @@ def main():
         select_sql = sql_query
 
     print("Executing query on PostgreSQL...")
-    db_url = 'postgresql+psycopg2://myuser:mypassword@host.docker.internal:5433/gtfs_db'
-    engine = create_engine(db_url)
     
     with engine.begin() as conn:
         if setup_sql:

@@ -2,3 +2,4 @@ IDFM-gtfs/
 **/__pycache__/
 venv/
 **.zip
+.idea/

@@ -4,9 +4,10 @@ services:
       context: ./data
       dockerfile: Dockerfile.downloader
     container_name: gtfs_downloader
+    network_mode: ${GTFS_DOWNLOADER_NETWORK_MODE:-bridge}
     volumes:
       - gtfs-data:/data
-    restart: "no"
+    restart: on-failure:10
 
   db:
     build:

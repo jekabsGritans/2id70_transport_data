@@ -1,6 +1,18 @@
 services:
+  downloader:
+    build:
+      context: ./data
+      dockerfile: Dockerfile.downloader
+    container_name: gtfs_downloader
+    network_mode: ${GTFS_DOWNLOADER_NETWORK_MODE:-bridge}
+    volumes:
+      - gtfs-data:/data
+    restart: on-failure:10
+
   db:
-    image: postgres:15
+    build:
+      context: ./data
+      dockerfile: Dockerfile
     container_name: gtfs_postgres
     environment:
       POSTGRES_USER: myuser
@@ -9,5 +21,40 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./IDFM-gtfs:/data/gtfs:ro
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+      - gtfs-data:/data:ro
+    networks:
+      - gtfs-network
+    depends_on:
+      downloader:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d gtfs_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  work:
+    build:
+      context: ./work
+      dockerfile: Dockerfile
+    container_name: gtfs_work
+    working_dir: /workspace
+    volumes:
+      - ./work:/workspace
+    networks:
+      - gtfs-network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:
+  gtfs-data:
+
+networks:
+  gtfs-network:
+    driver: bridge

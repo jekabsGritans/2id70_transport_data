@@ -5,19 +5,6 @@ import pandas as pd
 import os
 from sqlalchemy import create_engine, text
 
-DATA_FOLDER: str = "./IDFM-gtfs"
-
-
-def load_data():
-    if (os.path.exists(DATA_FOLDER) and len(os.listdir(DATA_FOLDER)) > 0):
-        print("Data already present")
-        return
-
-    try:
-        subprocess.run(["sh", "scripts/download.sh"], check=True)
-    except:
-        print("Error while executing download.sh")
-        exit(1)
 
 def compile_logica(predicate_name: str, file_path: str):
     print(f"Compiling {predicate_name} from {file_path}...")
@@ -28,12 +15,10 @@ def compile_logica(predicate_name: str, file_path: str):
 
     if result.returncode > 0:
         raise RuntimeError("\nLogica ran into a problem:\n" + result.stderr)
-    
+
     return result.stdout.strip()
 
 def main():
-    load_data()
-
     db_url = 'postgresql+psycopg2://myuser:mypassword@host.docker.internal:5433/gtfs_db'
     engine = create_engine(db_url)
 
@@ -48,7 +33,7 @@ def main():
         conn.commit()
 
     sql_query = compile_logica('Fastest', 'logica/logica.l')
-    
+
     # Separate Logica's PostgreSQL setup code from the actual SELECT statement
     # Logica's setup always ends with 'END $$;'
     logica_setup_separator = 'END $$;'
@@ -65,9 +50,9 @@ def main():
     with engine.begin() as conn:
         if setup_sql:
             conn.execute(text(setup_sql))
-            
+
         df = pd.read_sql(text(select_sql), conn)
-        
+
     print(f"\nSuccessfully loaded {len(df)} edges! Head:")
     print(df.head())
 

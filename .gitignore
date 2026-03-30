@@ -1,5 +1,13 @@
-IDFM-gtfs/
+# Dataset directory (downloaded automatically by DB container)
+data/IDFM-gtfs/
+
+# Python cache and virtual environments
 **/__pycache__/
 venv/
+
+# Compressed files
 **.zip
+
+# IDE files
 .idea/
+.vscode/

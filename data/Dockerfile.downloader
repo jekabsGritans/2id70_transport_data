@@ -1,0 +1,6 @@
+FROM python:3.12-slim
+
+COPY download.sh /download.sh
+RUN sed -i 's/\r$//' /download.sh && chmod +x /download.sh
+
+CMD ["/download.sh"]

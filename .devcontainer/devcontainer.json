@@ -1,13 +1,9 @@
 {
-  "name": "Python + Logica",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
-  "runArgs": [
-    "--security-opt",
-    "label=disable"
-  ],
+  "name": "GTFS Transport Data - Python + Logica",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "work",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -18,5 +14,6 @@
         "python.defaultInterpreterPath": "/usr/local/bin/python"
       }
     }
-  }
+  },
+  "postCreateCommand": "echo 'Dev container ready! Database is available at db:5432'"
 }

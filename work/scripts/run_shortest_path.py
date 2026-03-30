@@ -28,6 +28,12 @@ def parse_args() -> argparse.Namespace:
         default="work/scripts/shortest_path_time_edges.sql",
     )
     parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Optional max number of rows to print (0 = all).",
+    )
+    parser.add_argument(
         "--max-hops",
         type=int,
         default=8,
@@ -54,6 +60,7 @@ def main() -> None:
         params["RESULT_LIMIT"] = args.limit
 
     with engine.begin() as conn:
+        conn.execute(text("SET LOCAL max_parallel_workers_per_gather = 0"))
         rows = conn.execute(text(sql), params).mappings().all()
 
     if not rows:

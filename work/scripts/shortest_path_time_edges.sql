@@ -36,5 +36,4 @@ SELECT
   travel_time,
   hops,
   path_nodes
-FROM q
-ORDER BY arrival_dt, target_stop_id;
+FROM q;

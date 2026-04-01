@@ -79,8 +79,17 @@ INSERT INTO calendar_dates
 SELECT service_id, TO_DATE(date, 'YYYYMMDD'), exception_type
 FROM calendar_dates_stage;
 
--- TODO: myb add more
+-- Indexes for base lookups
 CREATE INDEX idx_stop_times_trip ON stop_times(trip_id);
-CREATE INDEX idx_stop_times_stop ON stop_times(stop_id);
-CREATE INDEX idx_stop_times_seq ON stop_times(trip_id, stop_sequence);
 CREATE INDEX idx_trips_service ON trips(service_id);
+
+-- Covering index for pivot_edges self-join (trip_id, stop_sequence) + payload columns
+CREATE INDEX idx_stop_times_seq ON stop_times(trip_id, stop_sequence)
+    INCLUDE (stop_id, arrival_time, departure_time);
+
+-- For recursive CTE: filter by source stop + departure time ordering
+CREATE INDEX idx_stop_times_stop_dep ON stop_times(stop_id, departure_time)
+    INCLUDE (trip_id, stop_sequence);
+
+-- Covering index for EXISTS subqueries on calendar_dates
+CREATE INDEX idx_calendar_dates_cov ON calendar_dates(service_id, date, exception_type);

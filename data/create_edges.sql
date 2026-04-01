@@ -75,6 +75,8 @@ SELECT generate_series(
     INTERVAL '1 day'
 )::DATE AS date;
 
+CREATE INDEX idx_date_sequence ON date_sequence(date);
+
 /*
 exploded edges: one row per (edge, active date)
 */

@@ -105,57 +105,113 @@ def load_departure_bounds(conn) -> tuple[dt.timedelta, dt.timedelta]:
     return min_time, max_time
 
 
-def load_active_calendar_date(conn) -> tuple[dt.date, int]:
+def _is_active_service_date(conn, candidate_date: dt.date) -> bool:
+    candidate_isodow = candidate_date.isoweekday()
     row = conn.execute(
         text(
             """
-            WITH calendar_days AS (
-                SELECT c.service_id, gs::date AS service_date
-                FROM calendar c
-                CROSS JOIN LATERAL generate_series(c.start_date, c.end_date, interval '1 day') gs
-                WHERE c.start_date IS NOT NULL
-                  AND c.end_date IS NOT NULL
-                  AND (
-                    (EXTRACT(ISODOW FROM gs) = 1 AND c.monday)
-                    OR (EXTRACT(ISODOW FROM gs) = 2 AND c.tuesday)
-                    OR (EXTRACT(ISODOW FROM gs) = 3 AND c.wednesday)
-                    OR (EXTRACT(ISODOW FROM gs) = 4 AND c.thursday)
-                    OR (EXTRACT(ISODOW FROM gs) = 5 AND c.friday)
-                    OR (EXTRACT(ISODOW FROM gs) = 6 AND c.saturday)
-                    OR (EXTRACT(ISODOW FROM gs) = 7 AND c.sunday)
-                  )
-            ),
-            active_calendar_days AS (
-                SELECT cd.service_date
-                FROM calendar_days cd
-                LEFT JOIN calendar_dates cdx
-                  ON cdx.service_id = cd.service_id
-                 AND cdx.date = cd.service_date
-                GROUP BY cd.service_id, cd.service_date
-                HAVING COALESCE(MAX(CASE WHEN cdx.exception_type = 2 THEN 1 ELSE 0 END), 0) = 0
-            ),
-            added_exception_days AS (
-                SELECT date AS service_date
-                FROM calendar_dates
-                WHERE exception_type = 1
-            )
-            SELECT service_date
-            FROM (
-                SELECT service_date FROM active_calendar_days
-                UNION
-                SELECT service_date FROM added_exception_days
-            ) AS all_active_dates
+            SELECT (
+                EXISTS (
+                    SELECT 1
+                    FROM calendar c
+                    LEFT JOIN calendar_dates cdx
+                      ON cdx.service_id = c.service_id
+                     AND cdx.date = :candidate_date
+                     AND cdx.exception_type = 2
+                    WHERE c.start_date <= :candidate_date
+                      AND :candidate_date <= c.end_date
+                      AND (
+                        (:candidate_isodow = 1 AND c.monday)
+                        OR (:candidate_isodow = 2 AND c.tuesday)
+                        OR (:candidate_isodow = 3 AND c.wednesday)
+                        OR (:candidate_isodow = 4 AND c.thursday)
+                        OR (:candidate_isodow = 5 AND c.friday)
+                        OR (:candidate_isodow = 6 AND c.saturday)
+                        OR (:candidate_isodow = 7 AND c.sunday)
+                      )
+                      AND cdx.service_id IS NULL
+                    LIMIT 1
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM calendar_dates
+                    WHERE date = :candidate_date
+                      AND exception_type = 1
+                    LIMIT 1
+                )
+            ) AS is_active
+            """
+        ),
+        {"candidate_date": candidate_date, "candidate_isodow": candidate_isodow},
+    ).mappings().one()
+    return bool(row["is_active"])
+
+
+def _first_weekday_on_or_after(start_date: dt.date, end_date: dt.date, weekday: int) -> dt.date | None:
+    delta = (weekday - start_date.weekday()) % 7
+    candidate = start_date + dt.timedelta(days=delta)
+    if candidate > end_date:
+        return None
+    return candidate
+
+
+def load_active_calendar_date(conn) -> tuple[dt.date, int]:
+    rows = conn.execute(
+        text(
+            """
+            SELECT service_id, start_date, end_date,
+                   monday, tuesday, wednesday, thursday,
+                   friday, saturday, sunday
+            FROM calendar
+            WHERE start_date IS NOT NULL AND end_date IS NOT NULL
+            ORDER BY random()
+            LIMIT 200
+            """
+        )
+    ).mappings().all()
+
+    weekday_flags = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+
+    for row in rows:
+        start_date = row["start_date"]
+        end_date = row["end_date"]
+        if start_date > end_date:
+            continue
+        enabled_weekdays = [
+            weekday for weekday, flag in enumerate(weekday_flags) if row[flag]
+        ]
+        if not enabled_weekdays:
+            continue
+        random.shuffle(enabled_weekdays)
+        for weekday in enabled_weekdays:
+            candidate = _first_weekday_on_or_after(start_date, end_date, weekday)
+            if candidate and _is_active_service_date(conn, candidate):
+                return candidate, candidate.weekday()
+
+    fallback = conn.execute(
+        text(
+            """
+            SELECT date AS service_date
+            FROM calendar_dates
+            WHERE exception_type = 1
             ORDER BY random()
             LIMIT 1
             """
         )
     ).mappings().one_or_none()
+    if fallback:
+        service_date = fallback["service_date"]
+        return service_date, service_date.weekday()
 
-    if not row:
-        raise RuntimeError("No active service date found in calendar/calendar_dates.")
-
-    service_date = row["service_date"]
-    return service_date, service_date.weekday()
+    raise RuntimeError("No active service date found in calendar/calendar_dates.")
 
 
 def random_time_between(rng: random.Random, lower: dt.timedelta, upper: dt.timedelta) -> dt.timedelta:
@@ -288,7 +344,6 @@ def main() -> None:
 
         if setup_sql:
             conn.execute(text(setup_sql))
-
         stop_ids = load_stop_ids(conn)
         departure_bounds = load_departure_bounds(conn)
         benchmark_date, benchmark_weekday = load_active_calendar_date(conn)
@@ -300,7 +355,6 @@ def main() -> None:
             departure_time_bounds=departure_bounds,
             case_count=args.cases,
         )
-
         for index, case in enumerate(cases, start=1):
             sql_params = {
                 "SOURCE_STOP_ID": case["source_stop_id"],

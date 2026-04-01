@@ -23,12 +23,12 @@ def main():
     engine = create_engine(db_url)
 
     src_id = "IDFM:472099" # input("Give the ID of your source stop: ")
-    departure_date = 20260401
-    dow = datetime.datetime(int(str(departure_date)[:4]), int(str(departure_date)[4:6]), int(str(departure_date)[6:])).weekday()
+    departure_date = datetime.date(2026, 4, 1)
+    dow = departure_date.weekday()
     departure_time = datetime.timedelta(hours=5, minutes=15)
 
     with engine.connect() as conn:
-        conn.execute(text("CREATE TEMP TABLE input(source_id VARCHAR, departure_date INTEGER, day_of_week INTEGER, departure_time INTERVAL);"))
+        conn.execute(text("CREATE TEMP TABLE input(source_id VARCHAR, departure_date DATE, day_of_week INTEGER, departure_time INTERVAL);"))
         conn.execute(text("INSERT INTO input (source_id, departure_date, day_of_week, departure_time) VALUES (:src, :departure_date, :day_of_week, :departure_time)"), {"src": src_id, "departure_date": departure_date, "day_of_week": dow, "departure_time": departure_time})
         conn.commit()
 

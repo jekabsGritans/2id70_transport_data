@@ -14,18 +14,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Return all targets reachable from a source at/after a start time."
     )
-    parser.add_argument("source_stop_id")
-    parser.add_argument("start_dt", help="Example: 2026-03-26 08:00:00")
+    parser.add_argument("source_stop_id", default="IDFM:472099")
+    parser.add_argument("start_dt", help="Example: 2026-03-26 08:00:00", default="2026-04-01 05:15:00")
     parser.add_argument(
         "--db-url",
         default=os.environ.get(
             "DB_URL",
-            "postgresql+psycopg2://myuser:mypassword@gtfs_postgres:5432/gtfs_db",
+            "postgresql+psycopg2://myuser:mypassword@host.docker.internal:5433/gtfs_db",
         ),
     )
     parser.add_argument(
         "--sql-file",
-        default="work/scripts/shortest_path_time_edges.sql",
+        default="scripts/shortest_path_time_edges.sql",
     )
     parser.add_argument(
         "--limit",
@@ -44,6 +44,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
 
     sql = load_sql(args.sql_file).rstrip().rstrip(";")
     if args.limit > 0:

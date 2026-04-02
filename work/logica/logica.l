@@ -10,10 +10,9 @@ ServiceRunsOn(service_id:, date: departure_date) :-
     departure_date <= end_date,
     ~calendar_dates(service_id:, date: departure_date, exception_type: 2);
 
-# OR has exception_type 1 or there is no exception recorded for that date
+# OR has exception_type 1
 ServiceRunsOn(service_id:, date:) :-
-    calendar_dates(service_id:, date:, exception_type: 1),
-    ~calendar_dates(service_id:, date:);
+    calendar_dates(service_id:, date:, exception_type: 1);
 
 Edges(trip_id:, source_id:, target_id:, travel_time:, departure_time:, arrival_time:) distinct :-
     # find sequential stops (nodes connected by edges)

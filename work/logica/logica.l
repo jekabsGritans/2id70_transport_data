@@ -14,7 +14,7 @@ ServiceRunsOn(service_id:, date: departure_date) :-
 ServiceRunsOn(service_id:, date:) :-
     calendar_dates(service_id:, date:, exception_type: 1);
 
-Edges(trip_id:, source_id:, target_id:, travel_time:, departure_time:, arrival_time:) distinct :-
+Edges(source_id:, target_id:, travel_time:, departure_time:, arrival_time:) distinct :-
     # find sequential stops (nodes connected by edges)
     stop_times(trip_id:, stop_id: source_id, stop_sequence: seq1, departure_time:),
     stop_times(trip_id:, stop_id: target_id, stop_sequence: seq2, arrival_time:),
